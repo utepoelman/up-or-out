@@ -207,10 +207,10 @@
                 <div id="stakeIncreaseHelpText" class="text-xs text-amber-300/90 bg-amber-500/10 p-3 rounded-xl border border-amber-500/20 flex flex-col gap-1 hidden">
                     <div class="flex items-center gap-2 font-bold text-amber-400">
                         <i class="fa-solid fa-circle-arrow-up"></i>
-                        <span>MID-ROUND STAKE BOOST</span>
+                        <span>ONE-TIME STAKE BOOST</span>
                     </div>
                     <p class="text-[11px] text-slate-300 leading-tight">
-                        Increase desired stake below and click <strong>BOOST STAKE</strong>. Multipliers apply directly to your <strong>NEW TOTAL STAKE</strong>!
+                        You can boost your initial stake up to <strong>5x</strong> before Spin 2! (Max stake: <span id="boostMaxText" class="font-bold text-amber-300">$5.00</span>).
                     </p>
                 </div>
 
@@ -255,9 +255,9 @@
                     </div>
                     <div class="text-right">
                         <div id="nextPayoutDisplay" class="text-xl font-bold font-mono text-emerald-300">
-                            $2.00
+                            $1.00
                         </div>
-                        <div id="nextMultiplierDisplay" class="text-xs text-emerald-400/80 mt-0.5 font-mono">Next Spin (2x)</div>
+                        <div id="nextMultiplierDisplay" class="text-xs text-emerald-400/80 mt-0.5 font-mono">Next Spin (1x)</div>
                     </div>
                 </div>
 
@@ -304,7 +304,7 @@
                     Place Your Stake!
                 </h2>
                 <p id="statusSubtext" class="text-xs md:text-sm text-slate-300 font-mono mt-1">
-                    Select initial stake, then spin to begin round. Surviving Spin #2 pays 2x!
+                    Select initial stake, then spin to begin round. Surviving Spin #2 pays 1x total stake!
                 </p>
             </div>
 
@@ -485,20 +485,20 @@
             <div class="space-y-4 text-sm text-slate-300 leading-relaxed">
                 <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800 flex gap-3">
                     <span class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold flex-shrink-0">1</span>
-                    <p><strong class="text-white">Initial Stake:</strong> Select stake before Spin 1. Entry fee is deducted immediately upon starting.</p>
+                    <p><strong class="text-white">Initial Stake:</strong> Select stake (minimum $1). Entry fee is deducted immediately upon starting.</p>
                 </div>
 
                 <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800 flex gap-3">
                     <span class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold flex-shrink-0">2</span>
-                    <p><strong class="text-white">Mid-Round Boost:</strong> After Spin 1 or any survived spin, you can <strong class="text-amber-300">INCREASE</strong> your total stake using remaining capital.</p>
+                    <p><strong class="text-white">One-Time Stake Boost:</strong> After Spin 1, you get a single opportunity to boost your total stake up to <strong class="text-amber-300">5x initial stake</strong>!</p>
                 </div>
 
                 <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800 flex gap-3">
                     <span class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold flex-shrink-0">3</span>
-                    <p><strong class="text-white">Doubling Schedule:</strong> Multipliers double after surviving Spin 2!
-                        <br>&bull; Spin 2 Survived = <strong class="text-emerald-300">2x Total Stake</strong>
-                        <br>&bull; Spin 3 Survived = <strong class="text-emerald-300">4x Total Stake</strong>
-                        <br>&bull; Spin 4 Survived = <strong class="text-emerald-300">8x Total Stake</strong> ($2^{K-1}\times$)
+                    <p><strong class="text-white">Payout Schedule:</strong>
+                        <br>&bull; Spin 2 Survived = <strong class="text-emerald-300">1x Total Stake</strong>
+                        <br>&bull; Spin 3 Survived = <strong class="text-emerald-300">2x Total Stake</strong>
+                        <br>&bull; Spin 4 Survived = <strong class="text-emerald-300">4x Total Stake</strong> ($2^{K-3}\times$)
                     </p>
                 </div>
 
@@ -643,6 +643,7 @@
         let selectedInitialStake = 1.00;
         let currentTotalStake = 1.00;
         let initialRoundStake = 1.00;
+        let boostUsed = false; // Flag to enforce boost only after spin 1 once
 
         let totalRoundsPlayed = 0;
         let currentSpinCount = 0;
@@ -682,6 +683,7 @@
         const stakeCardTitle = document.getElementById('stakeCardTitle');
         const stakeStatusTag = document.getElementById('stakeStatusTag');
         const stakeIncreaseHelpText = document.getElementById('stakeIncreaseHelpText');
+        const boostMaxText = document.getElementById('boostMaxText');
         const customStakeInput = document.getElementById('customStakeInput');
         const applyStakeBtn = document.getElementById('applyStakeBtn');
         const maxStakeBtn = document.getElementById('maxStakeBtn');
@@ -783,7 +785,6 @@
                 fullscreenToggleBtn.classList.remove("bg-amber-500/20", "border-amber-500/50");
             }
 
-            // Trigger canvas resize to adjust nicely
             setTimeout(resizeCanvas, 100);
         }
 
@@ -871,9 +872,14 @@
             ctx.stroke();
         }
 
+        // Updated multiplier rules:
+        // Survived spin 2: 1x (return stake)
+        // Survived spin 3: 2x stake
+        // Survived spin 4: 4x stake
+        // Survived spin K: 2^(K-3) x stake
         function getMultiplierForSpins(spins) {
             if (spins < 2) return 0;
-            return Math.pow(2, spins - 1);
+            return Math.pow(2, spins - 2);
         }
 
         function triggerSpin() {
@@ -881,19 +887,22 @@
             audio.init();
 
             if (!roundActive) {
+                if (selectedInitialStake < 1) selectedInitialStake = 1;
+
                 if (selectedInitialStake > bankroll) {
                     selectedInitialStake = Math.max(1, Math.floor(bankroll));
                     customStakeInput.value = selectedInitialStake;
                 }
 
-                if (bankroll < selectedInitialStake || selectedInitialStake <= 0) {
-                    updateStatusBanner("INSUFFICIENT CAPITAL!", "Lower your stake to match available balance.", "red");
+                if (bankroll < selectedInitialStake || selectedInitialStake < 1) {
+                    updateStatusBanner("INSUFFICIENT CAPITAL!", "Select at least $1 initial stake from available balance.", "red");
                     checkGameOver();
                     return;
                 }
 
                 totalRoundsPlayed++;
                 roundActive = true;
+                boostUsed = false;
                 currentSpinCount = 0;
                 lastSpunNumber = null;
                 currentMultiplier = 0;
@@ -911,7 +920,6 @@
             const sliceAngle = (2 * Math.PI) / sectorCount;
             const sectorCenter = (targetSector - 0.5) * sliceAngle;
             
-            // 7 to 10 full spins for long momentum
             const extraRotations = (7 + Math.floor(Math.random() * 4)) * 2 * Math.PI;
             
             startAngle = currentAngle;
@@ -923,7 +931,6 @@
             }
             
             targetAngle = desiredFinalAngle + extraRotations;
-            // Long spin duration (5.2s - 6.0s) for gradual decay
             spinDuration = 5200 + Math.random() * 800;
             spinStartTime = performance.now();
             isSpinning = true;
@@ -937,7 +944,6 @@
             requestAnimationFrame(animateSpin);
         }
 
-        // Quartic Easing curve for a dramatic slowdown
         function easeOutQuart(t) {
             return 1 - Math.pow(1 - t, 4);
         }
@@ -988,14 +994,20 @@
                     return;
                 }
 
-                updateStatusBanner(`SPIN 1: LANDED ON ${spunValue}!`, `Spin #2 MUST be strictly higher than ${spunValue} to get 2x Total Stake ($${(currentTotalStake * 2).toFixed(2)})!`, "gold");
+                updateStatusBanner(`SPIN 1: LANDED ON ${spunValue}!`, `Boost stake up to 5x ($${(initialRoundStake * 5).toFixed(2)}) now or spin! Spin #2 MUST beat ${spunValue} for 1x stake ($${currentTotalStake.toFixed(2)}) payout!`, "gold");
                 audio.playWin();
 
                 spinBtnText.textContent = `SPIN #2 (BEAT ${spunValue})`;
                 spinBtn.disabled = false;
+                
+                // Allow stake boost after Spin 1
                 setStakeControlsEnabled(true);
 
             } else {
+                // Boost opportunity is only right after Spin 1
+                boostUsed = true;
+                setStakeControlsEnabled(false);
+
                 const requiredToBeat = lastSpunNumber;
 
                 if (spunValue > requiredToBeat) {
@@ -1024,7 +1036,6 @@
                     
                     spinBtn.disabled = false;
                     cashOutBtn.disabled = false;
-                    setStakeControlsEnabled(true);
 
                 } else {
                     liveSpinHistory.push({ spin: currentSpinCount, val: spunValue, status: 'bust' });
@@ -1092,6 +1103,7 @@
 
         function endRound() {
             roundActive = false;
+            boostUsed = false;
             spinBtn.disabled = false;
             spinBtnText.textContent = "START NEW ROUND";
             cashOutBtn.disabled = true;
@@ -1123,6 +1135,7 @@
             sessionDataLog = [];
             selectedInitialStake = 1.00;
             currentTotalStake = 1.00;
+            boostUsed = false;
             currentSpinCount = 0;
             lastSpunNumber = null;
             currentMultiplier = 0;
@@ -1136,38 +1149,55 @@
             updateDataLogTable();
             updateSummaryBar();
             endRound();
-            updateStatusBanner("PLACE YOUR STAKE", "Select initial stake and click 'START NEW ROUND' to spin!", "gold");
+            updateStatusBanner("PLACE YOUR STAKE", "Select initial stake (min $1) and click 'START NEW ROUND' to spin!", "gold");
             drawWheel();
         }
 
+        // Updated boost logic: max allowed stake is 5x initial stake
         function handleStakeApply() {
             let desiredVal = parseFloat(customStakeInput.value);
-            if (isNaN(desiredVal) || desiredVal <= 0) desiredVal = 1;
 
             if (!roundActive) {
+                if (isNaN(desiredVal) || desiredVal < 1) desiredVal = 1;
                 if (desiredVal > bankroll) desiredVal = Math.max(1, Math.floor(bankroll));
                 selectedInitialStake = desiredVal;
                 customStakeInput.value = selectedInitialStake;
             } else {
+                // Mid-round boost logic after Spin 1
+                if (boostUsed || currentSpinCount !== 1) {
+                    updateStatusBanner("BOOST CLOSED", "Stake can only be boosted once after the first spin!", "red");
+                    customStakeInput.value = currentTotalStake;
+                    return;
+                }
+
+                const maxBoostAllowed = initialRoundStake * 5;
+                if (desiredVal > maxBoostAllowed) {
+                    updateStatusBanner("MAX BOOST EXCEEDED", `Maximum boost allowed is 5x your initial stake ($${maxBoostAllowed.toFixed(2)}).`, "red");
+                    desiredVal = maxBoostAllowed;
+                    customStakeInput.value = desiredVal;
+                }
+
                 if (desiredVal < currentTotalStake) {
-                    updateStatusBanner("CANNOT DECREASE STAKE!", `Current total stake is $${currentTotalStake.toFixed(2)}. Stake can only be INCREASED.`, "red");
+                    updateStatusBanner("CANNOT DECREASE STAKE!", `Current stake is $${currentTotalStake.toFixed(2)}. Stake can only be increased up to 5x ($${maxBoostAllowed.toFixed(2)}).`, "red");
                     customStakeInput.value = currentTotalStake;
                     return;
                 }
 
-                const additionalCommited = desiredVal - currentTotalStake;
-                if (additionalCommited > bankroll) {
-                    updateStatusBanner("INSUFFICIENT CAPITAL!", `Need $${additionalCommited.toFixed(2)} extra from balance, but available capital is $${bankroll.toFixed(2)}.`, "red");
+                const additionalCommitted = desiredVal - currentTotalStake;
+                if (additionalCommitted > bankroll) {
+                    updateStatusBanner("INSUFFICIENT CAPITAL!", `Need $${additionalCommitted.toFixed(2)} extra from balance, but available capital is $${bankroll.toFixed(2)}.`, "red");
                     customStakeInput.value = currentTotalStake;
                     return;
                 }
 
-                if (additionalCommited > 0) {
-                    bankroll -= additionalCommited;
+                if (additionalCommitted > 0) {
+                    bankroll -= additionalCommitted;
                     currentTotalStake = desiredVal;
+                    boostUsed = true; // Consumed single boost opportunity
                     audio.playWin();
 
-                    updateStatusBanner("TOTAL STAKE BOOSTED!", `New Total Stake: $${currentTotalStake.toFixed(2)} (+$${additionalCommited.toFixed(2)} deducted). Multipliers apply to $${currentTotalStake.toFixed(2)}!`, "green");
+                    updateStatusBanner("STAKE BOOSTED!", `New Total Stake: $${currentTotalStake.toFixed(2)} (+$${additionalCommitted.toFixed(2)} deducted). Multipliers now apply to $${currentTotalStake.toFixed(2)}!`, "green");
+                    setStakeControlsEnabled(false); // Disable further boosts
                 }
             }
 
@@ -1175,10 +1205,13 @@
         }
 
         function setStakeControlsEnabled(enabled) {
-            stakeBtns.forEach(btn => btn.disabled = !enabled);
-            customStakeInput.disabled = !enabled;
-            applyStakeBtn.disabled = !enabled;
-            maxStakeBtn.disabled = !enabled;
+            const canBoost = !roundActive || (!boostUsed && currentSpinCount === 1);
+            const activeEnabled = enabled && canBoost;
+
+            stakeBtns.forEach(btn => btn.disabled = !activeEnabled);
+            customStakeInput.disabled = !activeEnabled;
+            applyStakeBtn.disabled = !activeEnabled;
+            maxStakeBtn.disabled = !activeEnabled;
         }
 
         function updateDashboardUI() {
@@ -1189,7 +1222,14 @@
                 stakeCardTitle.textContent = "Total Active Stake";
                 stakeStatusTag.textContent = `Total Stake: $${currentTotalStake.toFixed(2)}`;
                 stakeStatusTag.className = "px-2.5 py-0.5 rounded-full text-xs font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold";
-                stakeIncreaseHelpText.classList.remove('hidden');
+                
+                if (currentSpinCount === 1 && !boostUsed) {
+                    stakeIncreaseHelpText.classList.remove('hidden');
+                    boostMaxText.textContent = `$${(initialRoundStake * 5).toFixed(2)}`;
+                } else {
+                    stakeIncreaseHelpText.classList.add('hidden');
+                }
+                
                 applyStakeBtn.textContent = "BOOST STAKE";
                 presetStakeRow.classList.add('opacity-50');
             } else {
@@ -1365,8 +1405,13 @@
 
         maxStakeBtn.addEventListener('click', () => {
             if (bankroll <= 0) return;
-            const maxVal = roundActive ? currentTotalStake + Math.floor(bankroll) : Math.floor(bankroll);
-            customStakeInput.value = Math.max(1, maxVal);
+            if (roundActive) {
+                const maxBoostAllowed = initialRoundStake * 5;
+                const canAfford = currentTotalStake + bankroll;
+                customStakeInput.value = Math.min(maxBoostAllowed, Math.floor(canAfford));
+            } else {
+                customStakeInput.value = Math.max(1, Math.floor(bankroll));
+            }
             handleStakeApply();
         });
 
