@@ -4,13 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>UP OR OUT</title>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Canvas Confetti Library -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
@@ -107,6 +103,23 @@
         .clip-pointer { 
             clip-path: polygon(0 0, 100% 0, 50% 100%); 
         }
+
+        /* Fullscreen element adjustments */
+        :-webkit-full-screen {
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+        }
+        :-moz-full-screen {
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+        }
+        :fullscreen {
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body class="flex flex-col min-h-screen justify-between font-sans antialiased text-slate-100">
@@ -115,7 +128,7 @@
         <div class="max-w-7xl mx-auto flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-neon-gold text-slate-950 text-xl font-black">
-                    <i class="fa-solid fa-[#10b981] fa-arrow-trend-up"></i>
+                    <i class="fa-solid fa-arrow-trend-up"></i>
                 </div>
                 <div>
                     <h1 class="text-xl md:text-2xl font-black tracking-wider uppercase italic bg-clip-text text-transparent bg-gradient-to-r from-amber-300 via-amber-400 to-yellow-500 glow-text-gold">
@@ -126,6 +139,12 @@
             </div>
 
             <div class="flex items-center gap-2 sm:gap-3">
+                <!-- Fullscreen Toggle Button -->
+                <button id="fullscreenToggleBtn" class="p-2.5 rounded-xl glass-card hover:bg-slate-800/80 text-amber-400 border border-slate-700/50 flex items-center gap-2 text-xs font-mono font-bold transition-all" title="Toggle Fullscreen">
+                    <i id="fullscreenIcon" class="fa-solid fa-expand text-sm"></i>
+                    <span id="fullscreenLabel" class="hidden sm:inline">FULLSCREEN</span>
+                </button>
+
                 <button id="exportCsvHeaderBtn" class="p-2.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/40 flex items-center gap-2 text-xs font-mono font-bold transition-all">
                     <i class="fa-solid fa-file-csv text-sm"></i>
                     <span class="hidden md:inline">EXPORT CSV</span>
@@ -265,7 +284,7 @@
             </div>
         </div>
 
-        <!-- Right Column: Canvas Wheel & Controls -->
+        <!-- Right Column: Canvas Wheel & Action Buttons -->
         <div class="lg:col-span-8 flex flex-col items-center gap-6 order-1 lg:order-2">
 
             <div class="relative flex items-center justify-center w-full max-w-[460px] aspect-square p-2">
@@ -324,7 +343,7 @@
 
             <div class="flex items-center gap-3">
                 <button id="quickLogBtn" class="text-sky-400 hover:text-sky-300 font-bold transition-colors flex items-center gap-1.5">
-                    <i class="fa-solid fa-[#38bdf8] fa-list"></i> Full Session Data Log
+                    <i class="fa-solid fa-list"></i> Full Session Data Log
                 </button>
                 <span class="text-slate-700">|</span>
                 <span class="text-slate-500">UP OR OUT &copy; Browser Edition</span>
@@ -723,6 +742,57 @@
         const soundIcon = document.getElementById('soundIcon');
         const soundLabel = document.getElementById('soundLabel');
 
+        // Fullscreen API Elements
+        const fullscreenToggleBtn = document.getElementById('fullscreenToggleBtn');
+        const fullscreenIcon = document.getElementById('fullscreenIcon');
+        const fullscreenLabel = document.getElementById('fullscreenLabel');
+
+        function toggleFullscreen() {
+            const doc = window.document;
+            const docEl = doc.documentElement;
+
+            const requestFS = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+            const exitFS = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
+
+            const isFS = doc.fullscreenElement || doc.mozFullScreenElement || doc.webkitFullscreenElement || doc.msFullscreenElement;
+
+            if (!isFS) {
+                if (requestFS) {
+                    requestFS.call(docEl).catch(err => {
+                        console.warn("Fullscreen error:", err);
+                    });
+                }
+            } else {
+                if (exitFS) {
+                    exitFS.call(doc);
+                }
+            }
+        }
+
+        function updateFullscreenUI() {
+            const doc = window.document;
+            const isFS = doc.fullscreenElement || doc.mozFullScreenElement || doc.webkitFullscreenElement || doc.msFullscreenElement;
+
+            if (isFS) {
+                fullscreenIcon.className = "fa-solid fa-compress text-sm";
+                fullscreenLabel.textContent = "EXIT FULLSCREEN";
+                fullscreenToggleBtn.classList.add("bg-amber-500/20", "border-amber-500/50");
+            } else {
+                fullscreenIcon.className = "fa-solid fa-expand text-sm";
+                fullscreenLabel.textContent = "FULLSCREEN";
+                fullscreenToggleBtn.classList.remove("bg-amber-500/20", "border-amber-500/50");
+            }
+
+            // Trigger canvas resize to adjust nicely
+            setTimeout(resizeCanvas, 100);
+        }
+
+        fullscreenToggleBtn.addEventListener('click', toggleFullscreen);
+
+        ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(evtName => {
+            document.addEventListener(evtName, updateFullscreenUI);
+        });
+
         function resizeCanvas() {
             const rect = canvas.getBoundingClientRect();
             const dpr = window.devicePixelRatio || 1;
@@ -840,7 +910,9 @@
             const targetSector = Math.floor(Math.random() * sectorCount) + 1;
             const sliceAngle = (2 * Math.PI) / sectorCount;
             const sectorCenter = (targetSector - 0.5) * sliceAngle;
-            const extraRotations = (5 + Math.floor(Math.random() * 3)) * 2 * Math.PI;
+            
+            // 7 to 10 full spins for long momentum
+            const extraRotations = (7 + Math.floor(Math.random() * 4)) * 2 * Math.PI;
             
             startAngle = currentAngle;
             const pointerAngle = 1.5 * Math.PI;
@@ -851,7 +923,8 @@
             }
             
             targetAngle = desiredFinalAngle + extraRotations;
-            spinDuration = 3500 + Math.random() * 800;
+            // Long spin duration (5.2s - 6.0s) for gradual decay
+            spinDuration = 5200 + Math.random() * 800;
             spinStartTime = performance.now();
             isSpinning = true;
 
@@ -864,14 +937,15 @@
             requestAnimationFrame(animateSpin);
         }
 
-        function easeOutCubic(t) {
-            return 1 - Math.pow(1 - t, 3);
+        // Quartic Easing curve for a dramatic slowdown
+        function easeOutQuart(t) {
+            return 1 - Math.pow(1 - t, 4);
         }
 
         function animateSpin(now) {
             const elapsed = now - spinStartTime;
             const progress = Math.min(elapsed / spinDuration, 1);
-            const easedProgress = easeOutCubic(progress);
+            const easedProgress = easeOutQuart(progress);
 
             currentAngle = startAngle + (targetAngle - startAngle) * easedProgress;
 
