@@ -1,0 +1,1386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UP OR OUT</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Canvas Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        mono: ['Space Grotesk', 'monospace'],
+                    },
+                    colors: {
+                        arcade: {
+                            bg: '#080c14',
+                            card: '#121929',
+                            border: '#1f2b42',
+                            gold: '#fbbf24',
+                            goldGlow: '#f59e0b',
+                            neonBlue: '#38bdf8',
+                            neonPurple: '#a855f7',
+                            neonPink: '#ec4899',
+                            danger: '#ef4444',
+                            success: '#10b981'
+                        }
+                    },
+                    boxShadow: {
+                        'neon-gold': '0 0 20px rgba(251, 191, 36, 0.35), inset 0 0 10px rgba(251, 191, 36, 0.15)',
+                        'neon-blue': '0 0 20px rgba(56, 189, 248, 0.35)',
+                        'neon-pink': '0 0 20px rgba(236, 72, 153, 0.35)',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            background-color: #080c14;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.1) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.1) 0px, transparent 50%),
+                radial-gradient(at 50% 50%, rgba(251, 191, 36, 0.04) 0px, transparent 70%);
+            color: #f3f4f6;
+            min-height: 100vh;
+            user-select: none;
+            overflow-x: hidden;
+        }
+
+        .glass-panel {
+            background: rgba(18, 25, 41, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+        }
+
+        .glass-card {
+            background: rgba(13, 19, 33, 0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .glow-text-gold {
+            text-shadow: 0 0 12px rgba(251, 191, 36, 0.6), 0 0 24px rgba(245, 158, 11, 0.3);
+        }
+
+        .glow-text-blue {
+            text-shadow: 0 0 12px rgba(56, 189, 248, 0.6);
+        }
+
+        .glow-text-pink {
+            text-shadow: 0 0 12px rgba(236, 72, 153, 0.6);
+        }
+
+        .glow-text-green {
+            text-shadow: 0 0 12px rgba(16, 185, 129, 0.6);
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(13, 19, 33, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1f2b42;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #38bdf8;
+        }
+
+        .clip-pointer { 
+            clip-path: polygon(0 0, 100% 0, 50% 100%); 
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen justify-between font-sans antialiased text-slate-100">
+
+    <header class="w-full glass-panel border-b border-slate-800/80 sticky top-0 z-40 px-4 py-3">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-neon-gold text-slate-950 text-xl font-black">
+                    <i class="fa-solid fa-[#10b981] fa-arrow-trend-up"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-black tracking-wider uppercase italic bg-clip-text text-transparent bg-gradient-to-r from-amber-300 via-amber-400 to-yellow-500 glow-text-gold">
+                        UP <span class="text-sky-400 font-semibold text-lg not-italic">OR</span> OUT
+                    </h1>
+                    <p class="text-xs text-emerald-400 font-mono hidden sm:block font-bold">Land Higher to Multiply &bull; Bust on Lower</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 sm:gap-3">
+                <button id="exportCsvHeaderBtn" class="p-2.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/40 flex items-center gap-2 text-xs font-mono font-bold transition-all">
+                    <i class="fa-solid fa-file-csv text-sm"></i>
+                    <span class="hidden md:inline">EXPORT CSV</span>
+                </button>
+
+                <button id="viewDataBtn" class="p-2.5 rounded-xl glass-card hover:bg-slate-800/80 text-sky-400 border border-slate-700/50 flex items-center gap-2 text-xs font-mono font-bold transition-all">
+                    <i class="fa-solid fa-table-list"></i>
+                    <span class="hidden md:inline">SESSION LOG</span>
+                </button>
+
+                <button id="soundToggleBtn" class="p-2.5 rounded-xl glass-card hover:bg-slate-800/80 text-slate-300 hover:text-white transition-all duration-200 border border-slate-700/50 flex items-center gap-2 text-sm" title="Toggle Sound">
+                    <i id="soundIcon" class="fa-solid fa-volume-high text-sky-400"></i>
+                    <span id="soundLabel" class="hidden lg:inline font-mono text-xs">MUTE</span>
+                </button>
+
+                <button id="rulesBtn" class="p-2.5 rounded-xl glass-card hover:bg-slate-800/80 text-slate-300 hover:text-white transition-all duration-200 border border-slate-700/50 flex items-center gap-2 text-sm">
+                    <i class="fa-solid fa-circle-question text-purple-400"></i>
+                    <span class="hidden lg:inline font-mono text-xs">RULES</span>
+                </button>
+
+                <button id="settingsBtn" class="p-2.5 rounded-xl glass-card hover:bg-slate-800/80 text-slate-300 hover:text-white transition-all duration-200 border border-slate-700/50 flex items-center gap-2 text-sm">
+                    <i class="fa-solid fa-gear text-amber-400"></i>
+                    <span class="hidden lg:inline font-mono text-xs">SETTINGS</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl w-full mx-auto p-4 md:p-6 flex-grow grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+        <!-- Left Column: Dashboard Controls -->
+        <div class="lg:col-span-4 flex flex-col gap-4 order-2 lg:order-1">
+            
+            <!-- Bankroll Display -->
+            <div class="glass-panel rounded-2xl p-5 border border-slate-800/80 flex flex-col gap-3 relative overflow-hidden">
+                <div class="absolute -right-6 -top-6 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-mono tracking-wider text-slate-400 uppercase">Capital Balance</span>
+                    <span id="roundCounterDisplay" class="text-xs font-mono text-sky-400 bg-sky-500/10 px-2.5 py-0.5 rounded-md border border-sky-500/30">
+                        Round #1
+                    </span>
+                </div>
+                <div class="flex items-baseline justify-between">
+                    <div id="bankrollDisplay" class="text-4xl font-black font-mono text-amber-400 glow-text-gold tracking-tight">
+                        $100.00
+                    </div>
+                    <div class="text-xs font-mono text-slate-400">CREDITS</div>
+                </div>
+            </div>
+
+            <!-- Stake & Mid-Round Boost Box -->
+            <div class="glass-panel rounded-2xl p-5 border border-slate-800/80 flex flex-col gap-4 relative overflow-hidden">
+                <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                    <span id="stakeCardTitle" class="text-xs font-mono tracking-wider text-slate-400 uppercase">Select Stake</span>
+                    <span id="stakeStatusTag" class="px-2.5 py-0.5 rounded-full text-xs font-mono bg-amber-500/10 text-amber-400 border border-amber-500/30 font-bold">
+                        Initial: $1.00
+                    </span>
+                </div>
+
+                <div id="stakeIncreaseHelpText" class="text-xs text-amber-300/90 bg-amber-500/10 p-3 rounded-xl border border-amber-500/20 flex flex-col gap-1 hidden">
+                    <div class="flex items-center gap-2 font-bold text-amber-400">
+                        <i class="fa-solid fa-circle-arrow-up"></i>
+                        <span>MID-ROUND STAKE BOOST</span>
+                    </div>
+                    <p class="text-[11px] text-slate-300 leading-tight">
+                        Increase desired stake below and click <strong>BOOST STAKE</strong>. Multipliers apply directly to your <strong>NEW TOTAL STAKE</strong>!
+                    </p>
+                </div>
+
+                <!-- Custom Stake Input & Action -->
+                <div class="flex items-center gap-2">
+                    <div class="relative flex-grow">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-sm">$</span>
+                        <input type="number" id="customStakeInput" min="1" step="1" value="1" class="w-full bg-slate-900/90 border border-slate-700 rounded-xl pl-7 pr-3 py-2.5 text-sm font-mono text-amber-300 focus:outline-none focus:border-amber-400 transition-colors" placeholder="Stake Amount">
+                    </div>
+                    <button id="applyStakeBtn" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-mono text-xs font-bold hover:opacity-90 transition-all shadow-md">
+                        SET STAKE
+                    </button>
+                    <button id="maxStakeBtn" class="px-3 py-2.5 rounded-xl glass-card border border-amber-500/30 text-amber-400 font-mono text-xs font-bold hover:bg-amber-500/20 transition-all">
+                        MAX
+                    </button>
+                </div>
+
+                <!-- Quick Stake Presets -->
+                <div id="presetStakeRow" class="grid grid-cols-4 gap-2">
+                    <button class="stake-btn px-2 py-2 rounded-xl glass-card hover:bg-amber-500/20 border border-slate-700/80 text-amber-300 font-mono text-xs font-bold transition-all" data-stake="1">$1</button>
+                    <button class="stake-btn px-2 py-2 rounded-xl glass-card hover:bg-amber-500/20 border border-slate-700/80 text-amber-300 font-mono text-xs font-bold transition-all" data-stake="5">$5</button>
+                    <button class="stake-btn px-2 py-2 rounded-xl glass-card hover:bg-amber-500/20 border border-slate-700/80 text-amber-300 font-mono text-xs font-bold transition-all" data-stake="10">$10</button>
+                    <button class="stake-btn px-2 py-2 rounded-xl glass-card hover:bg-amber-500/20 border border-slate-700/80 text-amber-300 font-mono text-xs font-bold transition-all" data-stake="25">$25</button>
+                </div>
+            </div>
+
+            <!-- Payout & Multiplier Card -->
+            <div class="glass-panel rounded-2xl p-5 border border-slate-800/80 flex flex-col gap-4 relative overflow-hidden">
+                <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
+                    <span class="text-xs font-mono tracking-wider text-slate-400 uppercase">Payout Calculation</span>
+                    <span id="spinCountBadge" class="px-2.5 py-0.5 rounded-full text-xs font-mono bg-sky-500/10 text-sky-400 border border-sky-500/30">
+                        Spin 0
+                    </span>
+                </div>
+
+                <div class="flex items-center justify-between py-1">
+                    <div>
+                        <div id="payoutDisplay" class="text-4xl font-black font-mono text-emerald-400 glow-text-green tracking-tight">
+                            $0.00
+                        </div>
+                        <div id="multiplierDisplay" class="text-xs text-slate-400 mt-1 font-mono">0x Multiplier &times; Total Stake</div>
+                    </div>
+                    <div class="text-right">
+                        <div id="nextPayoutDisplay" class="text-xl font-bold font-mono text-emerald-300">
+                            $2.00
+                        </div>
+                        <div id="nextMultiplierDisplay" class="text-xs text-emerald-400/80 mt-0.5 font-mono">Next Spin (2x)</div>
+                    </div>
+                </div>
+
+                <!-- Target Value to Beat -->
+                <div id="targetBox" class="rounded-xl bg-slate-900/80 border border-slate-800 p-3.5 flex items-center justify-between">
+                    <span class="text-xs text-slate-400 font-mono">Target to Beat:</span>
+                    <span id="targetValueDisplay" class="text-xl font-bold font-mono text-amber-400">
+                        --
+                    </span>
+                </div>
+            </div>
+
+            <!-- Live Round History -->
+            <div class="glass-panel rounded-2xl p-4 border border-slate-800/80 flex flex-col gap-2">
+                <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                    <span class="text-xs font-mono tracking-wider text-slate-400 uppercase">Active Round Sequence</span>
+                    <span id="sectorCountBadge" class="text-xs font-mono text-slate-500">N = 10</span>
+                </div>
+                <div id="historyList" class="flex flex-col gap-1.5 overflow-y-auto max-h-[140px] pr-1">
+                    <div class="text-xs text-slate-500 italic text-center py-4">
+                        Set stake and spin to start!
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Canvas Wheel & Controls -->
+        <div class="lg:col-span-8 flex flex-col items-center gap-6 order-1 lg:order-2">
+
+            <div class="relative flex items-center justify-center w-full max-w-[460px] aspect-square p-2">
+                <div class="absolute inset-2 rounded-full bg-gradient-to-tr from-sky-500/20 via-purple-500/10 to-amber-500/20 blur-xl"></div>
+                
+                <canvas id="wheelCanvas" class="w-full h-full relative z-10 drop-shadow-[0_0_25px_rgba(0,0,0,0.8)] cursor-pointer"></canvas>
+
+                <!-- Wheel Pointer -->
+                <div class="absolute -top-1 left-1/2 -translate-x-1/2 z-20 pointer-events-none filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)]">
+                    <div class="w-8 h-10 bg-gradient-to-b from-amber-300 via-amber-400 to-amber-600 clip-pointer border-t border-amber-200"></div>
+                </div>
+            </div>
+
+            <!-- Status Banner Message -->
+            <div id="statusBanner" class="w-full text-center py-4 px-6 rounded-2xl glass-panel border border-slate-800 transition-all duration-300 shadow-lg">
+                <h2 id="statusTitle" class="text-xl md:text-2xl font-extrabold tracking-wide text-amber-400 glow-text-gold uppercase">
+                    Place Your Stake!
+                </h2>
+                <p id="statusSubtext" class="text-xs md:text-sm text-slate-300 font-mono mt-1">
+                    Select initial stake, then spin to begin round. Surviving Spin #2 pays 2x!
+                </p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="w-full grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Spin Button -->
+                <button id="spinBtn" class="relative group overflow-hidden py-4 px-6 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 text-slate-950 font-extrabold text-xl tracking-wider uppercase shadow-neon-gold hover:opacity-95 active:scale-[0.98] transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none">
+                    <span class="relative z-10 flex items-center justify-center gap-3">
+                        <i class="fa-solid fa-arrows-spin text-2xl group-hover:rotate-180 transition-transform duration-500"></i>
+                        <span id="spinBtnText">START NEW ROUND</span>
+                    </span>
+                    <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-200"></div>
+                </button>
+
+                <!-- Cash Out Button -->
+                <button id="cashOutBtn" disabled class="relative group overflow-hidden py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-slate-950 font-extrabold text-xl tracking-wider uppercase shadow-lg hover:shadow-emerald-500/40 active:scale-[0.98] transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none">
+                    <span class="relative z-10 flex items-center justify-center gap-3">
+                        <i class="fa-solid fa-sack-dollar text-2xl"></i>
+                        <span id="cashOutBtnText">CASH OUT</span>
+                    </span>
+                    <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-200"></div>
+                </button>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Decluttered Footer Summary Bar -->
+    <footer class="w-full glass-panel border-t border-slate-800/80 px-4 py-2.5">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+            <div class="flex items-center gap-4 text-slate-400">
+                <span>Rounds: <strong id="summaryTotalRounds" class="text-slate-200">0</strong></span>
+                <span>Wins: <strong id="summaryWins" class="text-emerald-400">0</strong></span>
+                <span>Session Profit: <strong id="summaryProfit" class="text-slate-200">$0.00</strong></span>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <button id="quickLogBtn" class="text-sky-400 hover:text-sky-300 font-bold transition-colors flex items-center gap-1.5">
+                    <i class="fa-solid fa-[#38bdf8] fa-list"></i> Full Session Data Log
+                </button>
+                <span class="text-slate-700">|</span>
+                <span class="text-slate-500">UP OR OUT &copy; Browser Edition</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Game Over Modal -->
+    <div id="gameOverModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-lg z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="glass-panel w-full max-w-md rounded-3xl p-8 border border-rose-500/40 shadow-2xl text-center transform scale-95 transition-transform duration-300 flex flex-col items-center gap-5" id="gameOverBox">
+            <div class="w-20 h-20 rounded-full bg-rose-500/20 text-rose-500 border border-rose-500/40 flex items-center justify-center text-4xl shadow-neon-pink animate-pulse">
+                <i class="fa-solid fa-skull"></i>
+            </div>
+            
+            <div>
+                <h2 class="text-3xl font-black text-rose-500 uppercase tracking-wider glow-text-pink">GAME OVER</h2>
+                <p class="text-sm text-slate-300 mt-2 font-mono">You have run out of capital credits to continue playing.</p>
+            </div>
+
+            <div class="w-full bg-slate-900/80 rounded-2xl p-4 border border-slate-800 space-y-2 text-xs font-mono">
+                <div class="flex justify-between text-slate-400">
+                    <span>Rounds Played:</span>
+                    <span id="goTotalRounds" class="text-white font-bold">0</span>
+                </div>
+                <div class="flex justify-between text-slate-400">
+                    <span>Highest Multiplier:</span>
+                    <span id="goBestMult" class="text-emerald-400 font-bold">0x</span>
+                </div>
+            </div>
+
+            <div class="w-full flex flex-col gap-3 pt-2">
+                <button id="restartGameBtn" class="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 text-slate-950 font-black text-lg uppercase tracking-wider shadow-neon-gold hover:opacity-95 transition-all">
+                    <i class="fa-solid fa-rotate-right mr-2"></i> START NEW GAME ($100)
+                </button>
+                <button id="goExportCsvBtn" class="w-full py-3 rounded-xl glass-card border border-slate-700 text-slate-300 hover:text-white font-mono text-xs font-bold transition-all">
+                    <i class="fa-solid fa-download mr-1.5 text-emerald-400"></i> Download Session Data (.CSV)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Log Drawer Modal -->
+    <div id="dataLogModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="glass-panel w-full max-w-5xl rounded-3xl p-6 border border-slate-700 shadow-2xl transform scale-95 transition-transform duration-300 flex flex-col max-h-[85vh]" id="dataLogBox">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-table text-sky-400 text-xl"></i>
+                    <h3 class="text-xl font-bold text-white uppercase tracking-wide">Session Data Log</h3>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="modalExportCsvBtn" class="px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-xs font-mono font-bold hover:bg-emerald-500/30 transition-all flex items-center gap-1.5">
+                        <i class="fa-solid fa-file-csv"></i> Download CSV
+                    </button>
+                    <button id="closeDataLogBtn" class="text-slate-400 hover:text-white p-2 rounded-lg text-lg">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto flex-grow rounded-2xl border border-slate-800 bg-slate-950/50">
+                <table class="w-full text-left border-collapse text-xs font-mono">
+                    <thead class="bg-slate-900 text-slate-400 sticky top-0 uppercase tracking-wider border-b border-slate-800">
+                        <tr>
+                            <th class="p-3">Rd #</th>
+                            <th class="p-3">Sectors (N)</th>
+                            <th class="p-3">Initial Stake</th>
+                            <th class="p-3">Total Stake</th>
+                            <th class="p-3">Spins Sequence</th>
+                            <th class="p-3">Result</th>
+                            <th class="p-3">Mult</th>
+                            <th class="p-3">Payout</th>
+                            <th class="p-3">Net Profit</th>
+                            <th class="p-3">End Capital</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataLogTableBody" class="divide-y divide-slate-800/60 text-slate-300">
+                        <!-- Dynamic content -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="glass-panel w-full max-w-md rounded-3xl p-6 border border-slate-700 shadow-2xl transform scale-95 transition-transform duration-300" id="settingsBox">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-5">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-sliders text-amber-400 text-xl"></i>
+                    <h3 class="text-xl font-bold text-white uppercase tracking-wide">Wheel Settings</h3>
+                </div>
+                <button id="closeSettingsBtn" class="text-slate-400 hover:text-white p-2 rounded-lg text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="space-y-6">
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-sm font-semibold text-slate-300">Sectors on Wheel (N):</label>
+                        <span id="sectorValDisplay" class="text-lg font-mono font-bold text-amber-400 bg-amber-500/10 px-3 py-0.5 rounded-lg border border-amber-500/30">10</span>
+                    </div>
+                    <input type="range" id="sectorSlider" min="4" max="30" value="10" step="1" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-400">
+                    <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+                        Adjusts wheel sectors labeled 1 to N. Can only be modified between active rounds.
+                    </p>
+                </div>
+
+                <div class="rounded-xl bg-slate-900/60 p-4 border border-slate-800">
+                    <span class="text-xs font-mono text-slate-400 uppercase tracking-wider block mb-2">Sector Range</span>
+                    <div class="flex items-center justify-between text-sm font-mono">
+                        <span class="text-sky-400">Min Sector: 1</span>
+                        <span class="text-purple-400" id="maxSectorText">Max Sector: 10</span>
+                    </div>
+                </div>
+
+                <div class="pt-2">
+                    <button id="saveSettingsBtn" class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold uppercase tracking-wider hover:opacity-90 transition-opacity">
+                        Save & Apply
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rules Modal -->
+    <div id="rulesModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="glass-panel w-full max-w-lg rounded-3xl p-6 border border-slate-700 shadow-2xl transform scale-95 transition-transform duration-300 max-h-[90vh] overflow-y-auto" id="rulesBox">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-scroll text-sky-400 text-xl"></i>
+                    <h3 class="text-xl font-bold text-white uppercase tracking-wide">How To Play UP OR OUT</h3>
+                </div>
+                <button id="closeRulesBtn" class="text-slate-400 hover:text-white p-2 rounded-lg text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4 text-sm text-slate-300 leading-relaxed">
+                <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800 flex gap-3">
+                    <span class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold flex-shrink-0">1</span>
+                    <p><strong class="text-white">Initial Stake:</strong> Select stake before Spin 1. Entry fee is deducted immediately upon starting.</p>
+                </div>
+
+                <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800 flex gap-3">
+                    <span class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold flex-shrink-0">2</span>
+                    <p><strong class="text-white">Mid-Round Boost:</strong> After Spin 1 or any survived spin, you can <strong class="text-amber-300">INCREASE</strong> your total stake using remaining capital.</p>
+                </div>
+
+                <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800 flex gap-3">
+                    <span class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold flex-shrink-0">3</span>
+                    <p><strong class="text-white">Doubling Schedule:</strong> Multipliers double after surviving Spin 2!
+                        <br>&bull; Spin 2 Survived = <strong class="text-emerald-300">2x Total Stake</strong>
+                        <br>&bull; Spin 3 Survived = <strong class="text-emerald-300">4x Total Stake</strong>
+                        <br>&bull; Spin 4 Survived = <strong class="text-emerald-300">8x Total Stake</strong> ($2^{K-1}\times$)
+                    </p>
+                </div>
+
+                <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800 flex gap-3">
+                    <span class="w-7 h-7 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold flex-shrink-0">4</span>
+                    <p><strong class="text-white">Spin 1 Max Rule:</strong> Landing on max sector <strong class="text-amber-300">N</strong> on Spin 1 ends the round immediately (cannot be beaten).</p>
+                </div>
+
+                <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800 flex gap-3">
+                    <span class="w-7 h-7 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center font-bold flex-shrink-0">5</span>
+                    <p><strong class="text-white">Spin & Survive:</strong> Spins 2+ must land <strong class="text-amber-300">STRICTLY HIGHER</strong> than the previous number. Cash out anytime!</p>
+                </div>
+            </div>
+
+            <div class="mt-6">
+                <button id="understandRulesBtn" class="w-full py-3 rounded-xl bg-sky-500 text-slate-950 font-bold uppercase tracking-wider hover:bg-sky-400 transition-colors">
+                    Understood! Let's Play
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Web Audio Synthesizer ---
+        class SoundFX {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) this.ctx = new AudioCtx();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playTick() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(600 + Math.random() * 200, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(120, this.ctx.currentTime + 0.04);
+
+                gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.04);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.04);
+            }
+
+            playWin() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const notes = [440, 554.37, 659.25, 880];
+                notes.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+
+                    gain.gain.setValueAtTime(0.18, now + idx * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.3);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start(now + idx * 0.08);
+                    osc.stop(now + idx * 0.08 + 0.3);
+                });
+            }
+
+            playBust() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.exponentialRampToValueAtTime(60, now + 0.45);
+
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.45);
+            }
+
+            playCashOut() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const notes = [523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.06);
+
+                    gain.gain.setValueAtTime(0.25, now + idx * 0.06);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.06 + 0.25);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start(now + idx * 0.06);
+                    osc.stop(now + idx * 0.06 + 0.25);
+                });
+            }
+        }
+
+        const audio = new SoundFX();
+
+        // --- Core Application State ---
+        let sectorCount = 10;
+        let bankroll = 100.00;
+        let selectedInitialStake = 1.00;
+        let currentTotalStake = 1.00;
+        let initialRoundStake = 1.00;
+
+        let totalRoundsPlayed = 0;
+        let currentSpinCount = 0;
+        let lastSpunNumber = null;
+        let currentMultiplier = 0;
+        let isSpinning = false;
+        let roundActive = false;
+        let liveSpinValues = [];
+        let liveSpinHistory = [];
+
+        // Data Collection array for CSV export
+        let sessionDataLog = [];
+
+        // Canvas animation physics
+        let currentAngle = 0;
+        let startAngle = 0;
+        let targetAngle = 0;
+        let spinStartTime = null;
+        let spinDuration = 0;
+        let lastTickSector = -1;
+
+        const sectorColors = [
+            '#0284c7', '#0d9488', '#16a34a', '#ca8a04', 
+            '#ea580c', '#e11d48', '#9333ea', '#4f46e5',
+            '#2563eb', '#059669', '#d97706', '#dc2626'
+        ];
+
+        const canvas = document.getElementById('wheelCanvas');
+        const ctx = canvas.getContext('2d');
+        const spinBtn = document.getElementById('spinBtn');
+        const spinBtnText = document.getElementById('spinBtnText');
+        const cashOutBtn = document.getElementById('cashOutBtn');
+        const cashOutBtnText = document.getElementById('cashOutBtnText');
+
+        const bankrollDisplay = document.getElementById('bankrollDisplay');
+        const roundCounterDisplay = document.getElementById('roundCounterDisplay');
+        const stakeCardTitle = document.getElementById('stakeCardTitle');
+        const stakeStatusTag = document.getElementById('stakeStatusTag');
+        const stakeIncreaseHelpText = document.getElementById('stakeIncreaseHelpText');
+        const customStakeInput = document.getElementById('customStakeInput');
+        const applyStakeBtn = document.getElementById('applyStakeBtn');
+        const maxStakeBtn = document.getElementById('maxStakeBtn');
+        const presetStakeRow = document.getElementById('presetStakeRow');
+        const stakeBtns = document.querySelectorAll('.stake-btn');
+
+        const payoutDisplay = document.getElementById('payoutDisplay');
+        const multiplierDisplay = document.getElementById('multiplierDisplay');
+        const nextPayoutDisplay = document.getElementById('nextPayoutDisplay');
+        const nextMultiplierDisplay = document.getElementById('nextMultiplierDisplay');
+        const targetValueDisplay = document.getElementById('targetValueDisplay');
+        const spinCountBadge = document.getElementById('spinCountBadge');
+        const sectorCountBadge = document.getElementById('sectorCountBadge');
+        const historyList = document.getElementById('historyList');
+
+        const statusBanner = document.getElementById('statusBanner');
+        const statusTitle = document.getElementById('statusTitle');
+        const statusSubtext = document.getElementById('statusSubtext');
+
+        // Summary Bar
+        const summaryTotalRounds = document.getElementById('summaryTotalRounds');
+        const summaryWins = document.getElementById('summaryWins');
+        const summaryProfit = document.getElementById('summaryProfit');
+        const quickLogBtn = document.getElementById('quickLogBtn');
+
+        // Modals
+        const gameOverModal = document.getElementById('gameOverModal');
+        const gameOverBox = document.getElementById('gameOverBox');
+        const goTotalRounds = document.getElementById('goTotalRounds');
+        const goBestMult = document.getElementById('goBestMult');
+        const restartGameBtn = document.getElementById('restartGameBtn');
+        const goExportCsvBtn = document.getElementById('goExportCsvBtn');
+
+        const dataLogModal = document.getElementById('dataLogModal');
+        const dataLogBox = document.getElementById('dataLogBox');
+        const viewDataBtn = document.getElementById('viewDataBtn');
+        const closeDataLogBtn = document.getElementById('closeDataLogBtn');
+        const dataLogTableBody = document.getElementById('dataLogTableBody');
+        const modalExportCsvBtn = document.getElementById('modalExportCsvBtn');
+        const exportCsvHeaderBtn = document.getElementById('exportCsvHeaderBtn');
+
+        const settingsModal = document.getElementById('settingsModal');
+        const settingsBox = document.getElementById('settingsBox');
+        const settingsBtn = document.getElementById('settingsBtn');
+        const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+        const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+        const sectorSlider = document.getElementById('sectorSlider');
+        const sectorValDisplay = document.getElementById('sectorValDisplay');
+        const maxSectorText = document.getElementById('maxSectorText');
+
+        const rulesModal = document.getElementById('rulesModal');
+        const rulesBox = document.getElementById('rulesBox');
+        const rulesBtn = document.getElementById('rulesBtn');
+        const closeRulesBtn = document.getElementById('closeRulesBtn');
+        const understandRulesBtn = document.getElementById('understandRulesBtn');
+
+        const soundToggleBtn = document.getElementById('soundToggleBtn');
+        const soundIcon = document.getElementById('soundIcon');
+        const soundLabel = document.getElementById('soundLabel');
+
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+            drawWheel();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        function drawWheel() {
+            const rect = canvas.getBoundingClientRect();
+            const width = rect.width;
+            const height = rect.height;
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const radius = Math.min(centerX, centerY) - 15;
+
+            ctx.clearRect(0, 0, width, height);
+            if (radius <= 0) return;
+
+            const sliceAngle = (2 * Math.PI) / sectorCount;
+
+            for (let i = 0; i < sectorCount; i++) {
+                const angleStart = currentAngle + i * sliceAngle;
+                const angleEnd = angleStart + sliceAngle;
+
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, angleStart, angleEnd);
+                ctx.closePath();
+
+                const colorIndex = i % sectorColors.length;
+                ctx.fillStyle = sectorColors[colorIndex];
+                ctx.fill();
+
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#121929';
+                ctx.stroke();
+
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                const midAngle = angleStart + sliceAngle / 2;
+                ctx.rotate(midAngle);
+
+                ctx.textAlign = 'right';
+                ctx.fillStyle = '#ffffff';
+                ctx.font = `900 ${Math.max(12, Math.min(22, 220 / sectorCount))}px "Outfit", sans-serif`;
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+                ctx.shadowBlur = 4;
+
+                const sectorNumber = i + 1;
+                ctx.fillText(sectorNumber.toString(), radius - 18, 6);
+                ctx.restore();
+            }
+
+            // Center Hub
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius * 0.22, 0, 2 * Math.PI);
+            ctx.fillStyle = '#080c14';
+            ctx.fill();
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = '#fbbf24';
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius * 0.12, 0, 2 * Math.PI);
+            ctx.fillStyle = '#fbbf24';
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius + 2, 0, 2 * Math.PI);
+            ctx.lineWidth = 6;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+            ctx.stroke();
+        }
+
+        function getMultiplierForSpins(spins) {
+            if (spins < 2) return 0;
+            return Math.pow(2, spins - 1);
+        }
+
+        function triggerSpin() {
+            if (isSpinning) return;
+            audio.init();
+
+            if (!roundActive) {
+                if (selectedInitialStake > bankroll) {
+                    selectedInitialStake = Math.max(1, Math.floor(bankroll));
+                    customStakeInput.value = selectedInitialStake;
+                }
+
+                if (bankroll < selectedInitialStake || selectedInitialStake <= 0) {
+                    updateStatusBanner("INSUFFICIENT CAPITAL!", "Lower your stake to match available balance.", "red");
+                    checkGameOver();
+                    return;
+                }
+
+                totalRoundsPlayed++;
+                roundActive = true;
+                currentSpinCount = 0;
+                lastSpunNumber = null;
+                currentMultiplier = 0;
+                
+                initialRoundStake = selectedInitialStake;
+                currentTotalStake = selectedInitialStake;
+                bankroll -= currentTotalStake;
+                
+                liveSpinValues = [];
+                liveSpinHistory = [];
+                updateDashboardUI();
+            }
+
+            const targetSector = Math.floor(Math.random() * sectorCount) + 1;
+            const sliceAngle = (2 * Math.PI) / sectorCount;
+            const sectorCenter = (targetSector - 0.5) * sliceAngle;
+            const extraRotations = (5 + Math.floor(Math.random() * 3)) * 2 * Math.PI;
+            
+            startAngle = currentAngle;
+            const pointerAngle = 1.5 * Math.PI;
+            
+            let desiredFinalAngle = pointerAngle - sectorCenter;
+            while (desiredFinalAngle < startAngle) {
+                desiredFinalAngle += 2 * Math.PI;
+            }
+            
+            targetAngle = desiredFinalAngle + extraRotations;
+            spinDuration = 3500 + Math.random() * 800;
+            spinStartTime = performance.now();
+            isSpinning = true;
+
+            spinBtn.disabled = true;
+            cashOutBtn.disabled = true;
+            settingsBtn.disabled = true;
+            setStakeControlsEnabled(false);
+
+            updateStatusBanner("SPINNING...", `Spinning for Spin #${currentSpinCount + 1}!`, "blue");
+            requestAnimationFrame(animateSpin);
+        }
+
+        function easeOutCubic(t) {
+            return 1 - Math.pow(1 - t, 3);
+        }
+
+        function animateSpin(now) {
+            const elapsed = now - spinStartTime;
+            const progress = Math.min(elapsed / spinDuration, 1);
+            const easedProgress = easeOutCubic(progress);
+
+            currentAngle = startAngle + (targetAngle - startAngle) * easedProgress;
+
+            const sliceAngle = (2 * Math.PI) / sectorCount;
+            const currentSectorIdx = Math.floor(((1.5 * Math.PI - currentAngle) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) / sliceAngle);
+            if (currentSectorIdx !== lastTickSector) {
+                audio.playTick();
+                lastTickSector = currentSectorIdx;
+            }
+
+            drawWheel();
+
+            if (progress < 1) {
+                requestAnimationFrame(animateSpin);
+            } else {
+                isSpinning = false;
+                onSpinComplete();
+            }
+        }
+
+        function onSpinComplete() {
+            const sliceAngle = (2 * Math.PI) / sectorCount;
+            const normalizedAngle = ((1.5 * Math.PI - currentAngle) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+            const sectorIndex = Math.floor(normalizedAngle / sliceAngle);
+            const spunValue = sectorIndex + 1;
+
+            currentSpinCount++;
+            liveSpinValues.push(spunValue);
+
+            if (currentSpinCount === 1) {
+                lastSpunNumber = spunValue;
+                liveSpinHistory.push({ spin: 1, val: spunValue, status: 'started' });
+
+                if (spunValue === sectorCount) {
+                    audio.playBust();
+                    updateStatusBanner(`LANDED ON MAX SECTOR ${spunValue}!`, `Impossible to beat ${spunValue} on Spin #2. Round Over & Stake Lost!`, "red");
+                    
+                    recordRoundData("MAX_FIRST_SPIN_LOSS", 0, 0, -initialRoundStake);
+                    endRound();
+                    return;
+                }
+
+                updateStatusBanner(`SPIN 1: LANDED ON ${spunValue}!`, `Spin #2 MUST be strictly higher than ${spunValue} to get 2x Total Stake ($${(currentTotalStake * 2).toFixed(2)})!`, "gold");
+                audio.playWin();
+
+                spinBtnText.textContent = `SPIN #2 (BEAT ${spunValue})`;
+                spinBtn.disabled = false;
+                setStakeControlsEnabled(true);
+
+            } else {
+                const requiredToBeat = lastSpunNumber;
+
+                if (spunValue > requiredToBeat) {
+                    currentMultiplier = getMultiplierForSpins(currentSpinCount);
+                    const currentPayout = currentTotalStake * currentMultiplier;
+                    
+                    liveSpinHistory.push({ spin: currentSpinCount, val: spunValue, status: 'survived', mult: currentMultiplier, payout: currentPayout });
+                    lastSpunNumber = spunValue;
+
+                    audio.playWin();
+
+                    if (spunValue === sectorCount) {
+                        updateStatusBanner(`MAX SECTOR ${spunValue} REACHED!`, `Survived Spin #${currentSpinCount}! Payout: ${currentMultiplier}x Total Stake ($${currentPayout.toFixed(2)}) - Auto Cash Out!`, "gold");
+                        triggerConfetti();
+                        
+                        setTimeout(() => {
+                            cashOutRound(true, "AUTO_CASH_OUT_MAX_SECTOR");
+                        }, 1200);
+                        return;
+                    }
+
+                    updateStatusBanner(`SURVIVED SPIN #${currentSpinCount}!`, `Landed ${spunValue} (&gt; ${requiredToBeat})! Payout: $${currentPayout.toFixed(2)} (${currentMultiplier}x &times; Total Stake $${currentTotalStake.toFixed(2)})!`, "green");
+
+                    spinBtnText.textContent = `SPIN #${currentSpinCount + 1} (BEAT ${spunValue})`;
+                    cashOutBtnText.textContent = `CASH OUT ($${currentPayout.toFixed(2)})`;
+                    
+                    spinBtn.disabled = false;
+                    cashOutBtn.disabled = false;
+                    setStakeControlsEnabled(true);
+
+                } else {
+                    liveSpinHistory.push({ spin: currentSpinCount, val: spunValue, status: 'bust' });
+                    audio.playBust();
+
+                    updateStatusBanner(`BUSTED ON SPIN #${currentSpinCount}!`, `Landed ${spunValue} (&le; ${requiredToBeat}). Lost total active $${currentTotalStake.toFixed(2)} stake!`, "red");
+
+                    recordRoundData("LOST", 0, 0, -currentTotalStake);
+                    endRound();
+                }
+            }
+
+            updateDashboardUI();
+        }
+
+        function cashOutRound(isAuto = false, customResultCode = "CASH_OUT") {
+            if (!roundActive || currentSpinCount < 2 || isSpinning) return;
+
+            const winAmount = currentTotalStake * currentMultiplier;
+            const netProfit = winAmount - currentTotalStake;
+            bankroll += winAmount;
+
+            audio.playCashOut();
+            triggerConfetti();
+
+            if (!isAuto) {
+                updateStatusBanner(`CASHED OUT $${winAmount.toFixed(2)}!`, `Won ${currentMultiplier}x on total $${currentTotalStake.toFixed(2)} stake! Net profit: +$${netProfit.toFixed(2)}.`, "gold");
+            }
+
+            recordRoundData(customResultCode, currentMultiplier, winAmount, netProfit);
+            endRound();
+        }
+
+        function recordRoundData(result, finalMult, payout, netProfit) {
+            const spinSeqStr = liveSpinValues.join(" -> ");
+            
+            const logEntry = {
+                roundNum: totalRoundsPlayed,
+                sectorsN: sectorCount,
+                initialStake: initialRoundStake,
+                finalStake: currentTotalStake,
+                spinSequence: spinSeqStr,
+                spinsCount: currentSpinCount,
+                result: result,
+                finalMultiplier: finalMult,
+                payout: payout,
+                netProfit: netProfit,
+                endingCapital: bankroll
+            };
+
+            sessionDataLog.push(logEntry);
+            updateDataLogTable();
+            updateSummaryBar();
+        }
+
+        function updateSummaryBar() {
+            summaryTotalRounds.textContent = totalRoundsPlayed;
+            const wins = sessionDataLog.filter(r => r.netProfit > 0).length;
+            summaryWins.textContent = wins;
+
+            const totalProfit = sessionDataLog.reduce((acc, r) => acc + r.netProfit, 0);
+            summaryProfit.textContent = `${totalProfit >= 0 ? '+' : ''}$${totalProfit.toFixed(2)}`;
+            summaryProfit.className = totalProfit >= 0 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold';
+        }
+
+        function endRound() {
+            roundActive = false;
+            spinBtn.disabled = false;
+            spinBtnText.textContent = "START NEW ROUND";
+            cashOutBtn.disabled = true;
+            cashOutBtnText.textContent = "CASH OUT";
+            settingsBtn.disabled = false;
+            
+            setStakeControlsEnabled(true);
+            updateDashboardUI();
+            checkGameOver();
+        }
+
+        function checkGameOver() {
+            if (!roundActive && bankroll <= 0 && !isSpinning) {
+                goTotalRounds.textContent = totalRoundsPlayed;
+                
+                const maxMult = sessionDataLog.reduce((max, r) => Math.max(max, r.finalMultiplier), 0);
+                goBestMult.textContent = `${maxMult}x`;
+
+                setTimeout(() => {
+                    gameOverModal.classList.remove('opacity-0', 'pointer-events-none');
+                    gameOverBox.classList.remove('scale-95');
+                }, 800);
+            }
+        }
+
+        function restartFullGame() {
+            bankroll = 100.00;
+            totalRoundsPlayed = 0;
+            sessionDataLog = [];
+            selectedInitialStake = 1.00;
+            currentTotalStake = 1.00;
+            currentSpinCount = 0;
+            lastSpunNumber = null;
+            currentMultiplier = 0;
+            liveSpinValues = [];
+            liveSpinHistory = [];
+            customStakeInput.value = 1;
+
+            gameOverModal.classList.add('opacity-0', 'pointer-events-none');
+            gameOverBox.classList.add('scale-95');
+
+            updateDataLogTable();
+            updateSummaryBar();
+            endRound();
+            updateStatusBanner("PLACE YOUR STAKE", "Select initial stake and click 'START NEW ROUND' to spin!", "gold");
+            drawWheel();
+        }
+
+        function handleStakeApply() {
+            let desiredVal = parseFloat(customStakeInput.value);
+            if (isNaN(desiredVal) || desiredVal <= 0) desiredVal = 1;
+
+            if (!roundActive) {
+                if (desiredVal > bankroll) desiredVal = Math.max(1, Math.floor(bankroll));
+                selectedInitialStake = desiredVal;
+                customStakeInput.value = selectedInitialStake;
+            } else {
+                if (desiredVal < currentTotalStake) {
+                    updateStatusBanner("CANNOT DECREASE STAKE!", `Current total stake is $${currentTotalStake.toFixed(2)}. Stake can only be INCREASED.`, "red");
+                    customStakeInput.value = currentTotalStake;
+                    return;
+                }
+
+                const additionalCommited = desiredVal - currentTotalStake;
+                if (additionalCommited > bankroll) {
+                    updateStatusBanner("INSUFFICIENT CAPITAL!", `Need $${additionalCommited.toFixed(2)} extra from balance, but available capital is $${bankroll.toFixed(2)}.`, "red");
+                    customStakeInput.value = currentTotalStake;
+                    return;
+                }
+
+                if (additionalCommited > 0) {
+                    bankroll -= additionalCommited;
+                    currentTotalStake = desiredVal;
+                    audio.playWin();
+
+                    updateStatusBanner("TOTAL STAKE BOOSTED!", `New Total Stake: $${currentTotalStake.toFixed(2)} (+$${additionalCommited.toFixed(2)} deducted). Multipliers apply to $${currentTotalStake.toFixed(2)}!`, "green");
+                }
+            }
+
+            updateDashboardUI();
+        }
+
+        function setStakeControlsEnabled(enabled) {
+            stakeBtns.forEach(btn => btn.disabled = !enabled);
+            customStakeInput.disabled = !enabled;
+            applyStakeBtn.disabled = !enabled;
+            maxStakeBtn.disabled = !enabled;
+        }
+
+        function updateDashboardUI() {
+            bankrollDisplay.textContent = `$${bankroll.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            roundCounterDisplay.textContent = `Round #${totalRoundsPlayed + (roundActive ? 0 : 1)}`;
+
+            if (roundActive) {
+                stakeCardTitle.textContent = "Total Active Stake";
+                stakeStatusTag.textContent = `Total Stake: $${currentTotalStake.toFixed(2)}`;
+                stakeStatusTag.className = "px-2.5 py-0.5 rounded-full text-xs font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold";
+                stakeIncreaseHelpText.classList.remove('hidden');
+                applyStakeBtn.textContent = "BOOST STAKE";
+                presetStakeRow.classList.add('opacity-50');
+            } else {
+                stakeCardTitle.textContent = "Select Stake";
+                stakeStatusTag.textContent = `Initial: $${selectedInitialStake.toFixed(2)}`;
+                stakeStatusTag.className = "px-2.5 py-0.5 rounded-full text-xs font-mono bg-amber-500/10 text-amber-400 border border-amber-500/30 font-bold";
+                stakeIncreaseHelpText.classList.add('hidden');
+                applyStakeBtn.textContent = "SET STAKE";
+                presetStakeRow.classList.remove('opacity-50');
+            }
+
+            spinCountBadge.textContent = `Spin ${currentSpinCount}`;
+            sectorCountBadge.textContent = `N = ${sectorCount}`;
+
+            const activeTotalStake = roundActive ? currentTotalStake : selectedInitialStake;
+            const currentPayoutVal = roundActive ? activeTotalStake * currentMultiplier : 0;
+            payoutDisplay.textContent = `$${currentPayoutVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            multiplierDisplay.textContent = `${currentMultiplier}x Multiplier \u00D7 $${activeTotalStake.toFixed(2)} Total Stake`;
+
+            const nextMult = getMultiplierForSpins(currentSpinCount === 0 ? 2 : currentSpinCount + 1);
+            const nextPayoutVal = activeTotalStake * nextMult;
+            nextPayoutDisplay.textContent = `$${nextPayoutVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            nextMultiplierDisplay.textContent = `Next Spin (${nextMult}x)`;
+
+            targetValueDisplay.textContent = lastSpunNumber !== null ? `> ${lastSpunNumber}` : '--';
+
+            if (roundActive && currentSpinCount >= 2) {
+                cashOutBtnText.textContent = `CASH OUT ($${currentPayoutVal.toFixed(2)})`;
+            }
+
+            if (liveSpinHistory.length === 0) {
+                historyList.innerHTML = `
+                    <div class="text-xs text-slate-500 italic text-center py-4">
+                        Set stake and spin to start!
+                    </div>
+                `;
+            } else {
+                historyList.innerHTML = liveSpinHistory.map(item => {
+                    if (item.status === 'started') {
+                        return `
+                            <div class="flex items-center justify-between p-2 rounded-xl bg-slate-900/80 border border-slate-800 text-xs font-mono">
+                                <span class="text-slate-400">Spin #1</span>
+                                <span class="text-amber-400 font-bold">Landed ${item.val}</span>
+                                <span class="text-slate-500">Target Set</span>
+                            </div>
+                        `;
+                    } else if (item.status === 'survived') {
+                        return `
+                            <div class="flex items-center justify-between p-2 rounded-xl bg-emerald-950/30 border border-emerald-500/30 text-xs font-mono">
+                                <span class="text-emerald-400">Spin #${item.spin}</span>
+                                <span class="text-emerald-300 font-bold">Landed ${item.val} &check;</span>
+                                <span class="text-emerald-400 font-bold">$${item.payout.toFixed(2)} (${item.mult}x)</span>
+                            </div>
+                        `;
+                    } else {
+                        return `
+                            <div class="flex items-center justify-between p-2 rounded-xl bg-rose-950/30 border border-rose-500/30 text-xs font-mono">
+                                <span class="text-rose-400">Spin #${item.spin}</span>
+                                <span class="text-rose-300 font-bold">Landed ${item.val} &cross;</span>
+                                <span class="text-rose-400 font-bold">BUST</span>
+                            </div>
+                        `;
+                    }
+                }).join('');
+            }
+        }
+
+        function updateStatusBanner(title, subtext, theme) {
+            statusTitle.textContent = title;
+            statusSubtext.innerHTML = subtext;
+
+            statusTitle.className = "text-xl md:text-2xl font-extrabold tracking-wide uppercase ";
+            if (theme === 'gold') {
+                statusTitle.classList.add('text-amber-400', 'glow-text-gold');
+            } else if (theme === 'green') {
+                statusTitle.classList.add('text-emerald-400', 'glow-text-green');
+            } else if (theme === 'red') {
+                statusTitle.classList.add('text-rose-400', 'glow-text-pink');
+            } else {
+                statusTitle.classList.add('text-sky-400', 'glow-text-blue');
+            }
+        }
+
+        function triggerConfetti() {
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 80,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
+        }
+
+        function updateDataLogTable() {
+            if (sessionDataLog.length === 0) {
+                dataLogTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="10" class="p-6 text-center text-slate-500 italic">No rounds played in this session yet.</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            dataLogTableBody.innerHTML = sessionDataLog.map(r => {
+                const isWin = r.netProfit > 0;
+                const isLoss = r.netProfit < 0;
+                const profitClass = isWin ? 'text-emerald-400 font-bold' : (isLoss ? 'text-rose-400 font-bold' : 'text-slate-400');
+                
+                return `
+                    <tr class="hover:bg-slate-900/40 transition-colors">
+                        <td class="p-3 font-bold text-white">#${r.roundNum}</td>
+                        <td class="p-3">${r.sectorsN}</td>
+                        <td class="p-3">$${r.initialStake.toFixed(2)}</td>
+                        <td class="p-3">$${r.finalStake.toFixed(2)}</td>
+                        <td class="p-3 font-mono text-amber-300">${r.spinSequence}</td>
+                        <td class="p-3 text-[10px] font-bold uppercase"><span class="px-2 py-0.5 rounded ${isWin ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}">${r.result}</span></td>
+                        <td class="p-3">${r.finalMultiplier}x</td>
+                        <td class="p-3">$${r.payout.toFixed(2)}</td>
+                        <td class="p-3 ${profitClass}">${r.netProfit >= 0 ? '+' : ''}$${r.netProfit.toFixed(2)}</td>
+                        <td class="p-3 font-bold text-amber-400">$${r.endingCapital.toFixed(2)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function downloadCSV() {
+            if (sessionDataLog.length === 0) {
+                updateStatusBanner("NO DATA TO EXPORT!", "Play at least one round before exporting spreadsheet.", "red");
+                return;
+            }
+
+            const headers = [
+                "Round Number", "Sectors (N)", "Initial Stake ($)", "Total Stake ($)",
+                "Spin Sequence", "Spins Count", "Result", "Final Multiplier",
+                "Payout ($)", "Net Profit/Loss ($)", "Ending Capital ($)"
+            ];
+
+            const rows = sessionDataLog.map(r => [
+                r.roundNum,
+                r.sectorsN,
+                r.initialStake.toFixed(2),
+                r.finalStake.toFixed(2),
+                `"${r.spinSequence}"`,
+                r.spinsCount,
+                r.result,
+                r.finalMultiplier,
+                r.payout.toFixed(2),
+                r.netProfit.toFixed(2),
+                r.endingCapital.toFixed(2)
+            ]);
+
+            const csvContent = "data:text/csv;charset=utf-8," + 
+                [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `up_or_out_game_data_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        stakeBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const val = parseFloat(btn.dataset.stake);
+                customStakeInput.value = val;
+                handleStakeApply();
+            });
+        });
+
+        applyStakeBtn.addEventListener('click', handleStakeApply);
+
+        maxStakeBtn.addEventListener('click', () => {
+            if (bankroll <= 0) return;
+            const maxVal = roundActive ? currentTotalStake + Math.floor(bankroll) : Math.floor(bankroll);
+            customStakeInput.value = Math.max(1, maxVal);
+            handleStakeApply();
+        });
+
+        spinBtn.addEventListener('click', triggerSpin);
+        cashOutBtn.addEventListener('click', () => cashOutRound(false, "CASH_OUT"));
+
+        canvas.addEventListener('click', () => {
+            if (!spinBtn.disabled) spinBtn.click();
+        });
+
+        restartGameBtn.addEventListener('click', restartFullGame);
+        goExportCsvBtn.addEventListener('click', downloadCSV);
+        exportCsvHeaderBtn.addEventListener('click', downloadCSV);
+        modalExportCsvBtn.addEventListener('click', downloadCSV);
+
+        const openDataLog = () => {
+            updateDataLogTable();
+            dataLogModal.classList.remove('opacity-0', 'pointer-events-none');
+            dataLogBox.classList.remove('scale-95');
+        };
+
+        viewDataBtn.addEventListener('click', openDataLog);
+        quickLogBtn.addEventListener('click', openDataLog);
+
+        closeDataLogBtn.addEventListener('click', () => {
+            dataLogModal.classList.add('opacity-0', 'pointer-events-none');
+            dataLogBox.classList.add('scale-95');
+        });
+
+        settingsBtn.addEventListener('click', () => {
+            if (roundActive || isSpinning) return;
+            sectorSlider.value = sectorCount;
+            sectorValDisplay.textContent = sectorCount;
+            maxSectorText.textContent = `Max Sector: ${sectorCount}`;
+
+            settingsModal.classList.remove('opacity-0', 'pointer-events-none');
+            settingsBox.classList.remove('scale-95');
+        });
+
+        const closeSettings = () => {
+            settingsModal.classList.add('opacity-0', 'pointer-events-none');
+            settingsBox.classList.add('scale-95');
+        };
+
+        closeSettingsBtn.addEventListener('click', closeSettings);
+
+        sectorSlider.addEventListener('input', (e) => {
+            const val = e.target.value;
+            sectorValDisplay.textContent = val;
+            maxSectorText.textContent = `Max Sector: ${val}`;
+        });
+
+        saveSettingsBtn.addEventListener('click', () => {
+            sectorCount = parseInt(sectorSlider.value, 10);
+            closeSettings();
+            endRound();
+            drawWheel();
+        });
+
+        rulesBtn.addEventListener('click', () => {
+            rulesModal.classList.remove('opacity-0', 'pointer-events-none');
+            rulesBox.classList.remove('scale-95');
+        });
+
+        const closeRules = () => {
+            rulesModal.classList.add('opacity-0', 'pointer-events-none');
+            rulesBox.classList.add('scale-95');
+        };
+
+        closeRulesBtn.addEventListener('click', closeRules);
+        understandRulesBtn.addEventListener('click', closeRules);
+
+        soundToggleBtn.addEventListener('click', () => {
+            audio.enabled = !audio.enabled;
+            if (audio.enabled) {
+                soundIcon.className = 'fa-solid fa-volume-high text-sky-400';
+                soundLabel.textContent = 'MUTE';
+            } else {
+                soundIcon.className = 'fa-solid fa-volume-xmark text-slate-500';
+                soundLabel.textContent = 'UNMUTE';
+            }
+        });
+
+        window.onload = function() {
+            resizeCanvas();
+            updateDashboardUI();
+            updateSummaryBar();
+        };
+    </script>
+</body>
+</html>
